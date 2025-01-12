@@ -1,0 +1,43 @@
+#include "mbed.h"
+#include "XNucleoIKS01A2.h"
+
+
+Serial pc(PA_2, PA_3, 921600);
+
+static XNucleoIKS01A2 *mysensor = XNucleoIKS01A2::instance(D14, D15, D4, D5);
+static LSM6DSLSensor *mygyro = mysensor->acc_gyro;
+
+Timer t;
+
+int main() {
+    mygyro->enable_x();
+    //mygyro->set_x_odr(1666);
+    union u1{
+        int16_t rdata;
+        int8_t sdata[2];
+    }acc[3];
+
+    union u2{
+        float rsens;
+        int8_t ssens[4];
+    }sensitivity;
+
+    mygyro->get_x_sensitivity(&sensitivity.rsens);
+    for (int i=0;i<4;i++){
+        pc.putc(sensitivity.ssens[i]);
+    }
+
+    while(1){
+        t.start();
+        t.reset();
+        mygyro->get_x_axes_raw((int16_t *)acc);
+        //pc.putc('a');
+        for (int i=0; i<2;i++){
+            pc.putc(acc[2].sdata[i]);
+        }
+        float imp_time=t.read();
+        if (imp_time<0.01) {
+            wait(0.01-imp_time);
+        }
+    }
+}
